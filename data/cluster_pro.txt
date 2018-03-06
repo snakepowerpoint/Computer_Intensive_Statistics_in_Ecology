@@ -1,0 +1,82 @@
+envdata = read.table('enviANDdensity.txt',header=T)
+
+library(vegan)
+library(cluster)
+library(fpc)
+library(TWIX)
+
+
+##Conduct a Nonhierarchical Clustering (NHC)
+
+#standardize data
+data = envdata[,-1]
+data.std = scale(data)
+
+#compute distance matrix
+dist.eucl = dist(data.std,method='euclidean')
+
+#Determine number of clusters
+
+withinss = (nrow(data.std)-1)*sum(apply(data.std,2,var))
+si = numeric(15)
+for (i in 2:15){ 
+	withinss[i] = sum(kmeans(data.std,centers=i)$withinss)
+	si[i] = summary(silhouette(pam(data.std,i)))$avg.width
+}
+plot(1:15, withinss, type="l", xlab="Number of Clusters",
+  ylab="Within groups sum of squares") 
+par(new=TRUE)
+plot(2:15,si[2:15],type="l",lty=2,col=2,lwd=2,xaxt="n",yaxt="n",xlab="",ylab="")
+axis(4)
+mtext("si",side=4)
+legend("topright",col=c("black","red"),lty=c(1,2),legend=c("WSS","Si"))
+
+#compute k-means NHC around 5 mediods (clusters)
+y.pam = pam(dist.eucl,k=5) 
+y.clara = clara(data.std,k=5) 
+
+summary(y.pam)
+
+#cluster plots of results
+plot(y.pam,which.plot=1, labels=2,lines=2) 
+plot(y.pam,which.plot=2)
+
+#evaluate cluster stability
+y.eucl.boot = clusterboot(data.std, B=100, metric='euclidean', bootmethod=c('boot','subset'), clustermethod=claraCBI, usepam=TRUE, k=5, count=FALSE)
+print(y.eucl.boot)			
+
+
+##Conduct a Hierarchical Clustering (HC)
+
+y.eucl.ave = hclust(dist.eucl,method='average')
+y.eucl.cen = hclust(dist.eucl,method='centroid')
+y.eucl.med = hclust(dist.eucl,method='median')
+y.eucl.sin = hclust(dist.eucl,method='single')
+y.eucl.com = hclust(dist.eucl,method='complete')
+y.eucl.ward = hclust(dist.eucl,method='ward')
+
+y.eucl.ave = agnes(dist.eucl,method='average')
+y.eucl.ward = agnes(dist.eucl,method='ward')
+y.eucl.sin = agnes(dist.eucl,method='single')
+y.eucl.com = agnes(dist.eucl,method='complete')
+
+y.eucl.dia = diana(dist.eucl)
+
+#examine the results
+summary(y.eucl.ave) #agnes only
+summary(y.eucl.dia) #diana only
+
+#dendrogram
+plot(y.eucl.ave,main='Average-linkage Dendrogram',xlab='Station',labels=envdata[,1])
+rect.hclust(y.eucl.ave,k=5) #cut by #clusters
+rect.hclust(y.eucl.ave,h=5) #cut by height
+
+#aggolmerative coefficient
+summary(y.eucl.ave)$ac 
+
+#cophenetic correlation
+cor(dist.eucl,cophenetic(y.eucl.ave))
+plot(dist.eucl,cophenetic(y.eucl.ave),xlab="Original distances",ylab="Cophenetic distances")
+
+
+

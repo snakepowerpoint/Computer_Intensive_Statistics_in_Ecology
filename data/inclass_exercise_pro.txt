@@ -1,0 +1,38 @@
+#read CTD data table
+st.3=read.table("st.3.txt",header=T)
+head(st.3)
+
+#make a plot
+plot(Temp~Pres,st.3,type="b",lwd=2)
+
+#read copepod composition data table
+cop = read.table("copepod_composition.txt",header=T)
+
+#find locations of the most abundant species in 34 stations
+dominant=numeric(34)
+for(i in 1:34){
+	dominant[i]=which(cop[,i]==max(cop[,i]))
+}
+
+#change 0 to NA
+A=cop[,1]
+A[A==0]=NA
+
+#change NA back to 0
+fix(A)
+
+#classify data into 3 categories based on turbity 
+st.3$y=1
+for(i in 1:length(st.3[,1])){
+ if(st.3$Turb[i] <= 10){
+	st.3$y[i]=0}
+ if(st.3$Turb[i] > 15){
+	st.3$y[i]=2}
+}
+
+#make a function
+cubic=function(x) x^3   #save this line into a text file, file name=cubic.txt
+
+#call this function
+source("h:/path to your workspace/cubic.txt")
+
